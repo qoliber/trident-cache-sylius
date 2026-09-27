@@ -1,0 +1,24 @@
+{# Personal sections: no cookie → no request; unchanged cookie → localStorage; changed → one request. #}
+<script>
+window.tridentSections = {
+    endpoint: {{ path('trident_sylius_sections')|json_encode|raw }},
+    versionCookies: ['trident_cart'],
+    storageKey: 'trident_sylius_sections',
+    maxAge: 3600
+};
+</script>
+<script src="{{ path('trident_sylius_sections_script') }}" defer></script>
+<script>
+// The cart changes without a page load (the add-to-cart form is a live
+// component): its response rotates the trident_cart cookie. Re-check when it
+// changes — reading a cookie costs nothing, a request happens only then.
+(function () {
+    var last = document.cookie;
+    setInterval(function () {
+        if (document.cookie !== last) {
+            last = document.cookie;
+            if (window.TridentSections) { window.TridentSections.refresh(); }
+        }
+    }, 1000);
+})();
+</script>

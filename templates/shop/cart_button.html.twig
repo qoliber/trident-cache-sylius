@@ -1,0 +1,8 @@
+{# The header cart, identical for every visitor: filled by trident-sections.js from the visitor's own sections. #}
+<div class="col-auto position-relative" data-trident-cart>
+    <button class="btn btn-icon btn-transparent px-0 position-relative" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCart" aria-label="cart button">
+        {{ ux_icon('tabler:shopping-bag') }}
+        <span class="d-none d-lg-block ps-1" data-trident-section="cart_summary" hidden></span>
+        <span class="position-absolute top-0 start-0 badge rounded-pill bg-primary" data-trident-section="cart_count" hidden></span>
+    </button>
+</div>

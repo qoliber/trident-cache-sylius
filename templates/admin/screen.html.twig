@@ -1,0 +1,115 @@
+{% extends '@SyliusAdmin/shared/layout/base.html.twig' %}
+
+{% macro value(v, depth) %}
+    {% if v is iterable %}
+        {% if depth > 4 %}…{% else %}
+        <table class="table table-sm table-bordered mb-1">
+            {% for k, item in v|slice(0, 200, true) %}
+                <tr><th class="text-nowrap small">{{ k }}</th><td class="small">{{ _self.value(item, depth + 1) }}</td></tr>
+            {% endfor %}
+        </table>
+        {% endif %}
+    {% elseif v is same as(true) %}yes{% elseif v is same as(false) %}no{% elseif v is null %}–{% else %}{{ v }}{% endif %}
+{% endmacro %}
+
+{% block title %}Trident Cache — {{ screen }}{% endblock %}
+
+{% block body %}
+<div class="container-xl py-4" id="trident-admin" data-screen="{{ screen }}">
+    <h1 class="h2 mb-3"><a href="{{ path('sylius_admin_dashboard') }}">Sylius</a> / Trident Cache — {{ screen }}</h1>
+    <ul class="nav nav-pills mb-3">
+        {% for s in screens %}
+            <li class="nav-item"><a class="nav-link{{ s == screen ? ' active' }}" href="{{ path('trident_sylius_admin_screen', {screen: s}) }}">{{ s }}</a></li>
+        {% endfor %}
+    </ul>
+
+    {% for type, messages in app.flashes %}
+        {% for message in messages %}
+            <div class="alert alert-{{ type == 'error' ? 'danger' : type }} trident-flash" data-type="{{ type }}">{{ message }}</div>
+        {% endfor %}
+    {% endfor %}
+    {% if error %}<div class="alert alert-danger trident-error">{{ error }}</div>{% endif %}
+
+    <div class="card mb-3"><div class="card-body">
+        <strong>Source:</strong> {{ overview.settings.source }} ·
+        <strong>Mode:</strong> {{ overview.settings.mode }} ·
+        <strong>Instances:</strong>
+        {% for i in overview.settings.instances %}
+            <span class="badge bg-secondary">{{ i.name }} {{ i.api_url }}{{ i.has_token ? '' : ' (no token)' }}</span>
+        {% else %}none{% endfor %}
+        {% for e in overview.settings.errors %}<div class="text-danger small trident-setting-error">{{ e }}</div>{% endfor %}
+        {% if overview.outbox %}<div class="small">Outbox: {{ overview.outbox.pending }} pending{{ overview.outbox.last_error ? ', last failure: ' ~ overview.outbox.last_error }}</div>{% endif %}
+        {% for r in overview.instances %}
+            <div class="small trident-instance" data-instance="{{ r.instance }}" data-ok="{{ r.ok ? 1 : 0 }}">
+                {{ r.instance }}: {{ r.ok ? (r.data.version ~ ' / ' ~ r.data.mode) : ('unreachable — ' ~ r.error) }}
+            </div>
+        {% endfor %}
+    </div></div>
+
+    {% if screen == 'settings' %}
+        <div class="card mb-3"><div class="card-body">
+            <form method="post" action="{{ path('trident_sylius_admin_settings') }}" class="trident-settings">
+                <input type="hidden" name="_token" value="{{ csrf_token('trident_admin') }}">
+                <label class="form-label">Trident admin API URL (used only when the environment configures no instance)
+                    <input class="form-control" name="api_url" value="{{ data.stored.api_url ?? '' }}"></label>
+                <label class="form-label">API token {{ data.stored.has_token ? '(stored — leave empty to keep it)' : '' }}
+                    <input class="form-control" type="password" name="api_token" value="" autocomplete="new-password"></label>
+                {% if data.stored.token_error %}<div class="text-danger">{{ data.stored.token_error }}</div>{% endif %}
+                <label class="form-label">Purge mode
+                    <select class="form-select" name="purge_mode">
+                        {% for m in ['soft', 'hard'] %}<option value="{{ m }}"{{ data.stored.purge_mode == m ? ' selected' }}>{{ m }}</option>{% endfor %}
+                    </select></label>
+                {% if can_operate %}<button class="btn btn-primary">Save</button>{% endif %}
+            </form>
+        </div></div>
+    {% endif %}
+
+    {% if screen == 'entry' %}
+        <form method="get" class="mb-3"><input class="form-control" name="url" placeholder="/en_US/products/…" value="{{ query.url ?? '' }}"><button class="btn btn-secondary mt-1">Look up</button></form>
+    {% endif %}
+
+    {% if can_operate %}
+        {% for action, fields in forms %}
+            <form method="post" action="{{ path('trident_sylius_admin_action', {action: action}) }}" class="card card-body mb-2 trident-action" data-action="{{ action }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('trident_admin') }}">
+                <input type="hidden" name="screen" value="{{ screen }}">
+                <strong>{{ action|replace({'_': ' '}) }}</strong>
+                <div class="row g-2">
+                    {% for name, type in fields %}
+                        <div class="col-md">
+                            {% if type == 'textarea' %}
+                                <textarea class="form-control" name="{{ name }}" placeholder="{{ name }} (one per line)" rows="2"></textarea>
+                            {% elseif type starts with 'select:' %}
+                                <select class="form-select" name="{{ name }}">{% for o in type[7:]|split('|') %}<option value="{{ o }}">{{ o == '' ? '(' ~ name ~ ')' : o }}</option>{% endfor %}</select>
+                            {% else %}
+                                <input class="form-control" name="{{ name }}" placeholder="{{ name }}">
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    <div class="col-md">
+                        <select class="form-select" name="instance"><option value="">all instances</option>{% for i in overview.settings.instances %}<option value="{{ i.name }}">{{ i.name }}</option>{% endfor %}</select>
+                    </div>
+                </div>
+                {% if action in confirm or action == 'purge_tags' %}
+                    <label class="mt-1"><input type="checkbox" name="confirm" value="1"> I confirm: this changes what every visitor is served</label>
+                {% endif %}
+                <button class="btn btn-outline-primary mt-2 btn-sm">Run</button>
+            </form>
+        {% endfor %}
+    {% endif %}
+
+    {% if data and screen != 'settings' %}
+        <div class="card"><div class="card-body trident-data">
+            {% if data.results is defined %}
+                {% for r in data.results %}
+                    <h2 class="h5">{{ r.instance }}</h2>
+                    {% if r.ok %}{{ _self.value(r.data, 0) }}{% else %}<div class="text-danger">{{ r.disabled ? 'not enabled on this instance' : r.error }}</div>{% endif %}
+                {% endfor %}
+                {{ _self.value(data|filter((v, k) => k != 'results'), 0) }}
+            {% else %}
+                {{ _self.value(data, 0) }}
+            {% endif %}
+        </div></div>
+    {% endif %}
+</div>
+{% endblock %}

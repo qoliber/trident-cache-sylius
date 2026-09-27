@@ -1,0 +1,8 @@
+{# The off-canvas cart, identical for every visitor: the summary comes from trident-sections.js; the cart page has the items. #}
+<div class="offcanvas offcanvas-end offcanvas-wide" tabindex="-1" id="offcanvasCart">
+    {% include '@SyliusShop/shared/layout/base/offcanvas/cart/header.html.twig' %}
+    <div class="offcanvas-body">
+        <p class="fs-5" data-trident-if="has_cart" hidden><span data-trident-section="cart_summary"></span></p>
+        <a class="btn btn-primary w-100" href="{{ path('sylius_shop_cart_summary') }}">{{ 'sylius.ui.view_and_edit_cart'|trans }}</a>
+    </div>
+</div>
