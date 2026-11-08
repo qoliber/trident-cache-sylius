@@ -23,7 +23,7 @@ final class AdminForms
             'purge_all' => [],
         ],
         'warmer' => ['warmer_run' => ['sitemaps' => 'textarea'], 'warmer_cancel' => [], 'warmer_queue_shop' => ['limit' => 'text'], 'warmer_queue' => ['urls' => 'textarea']],
-        'launch' => ['launch_start' => ['reason' => 'text'], 'launch_complete' => [], 'launch_abort' => ['reason' => 'text']],
+        'launch' => ['launch_start' => ['urls' => 'textarea'], 'launch_complete' => [], 'launch_abort' => ['reason' => 'text']],
         'reflect' => ['reflect_enable' => ['level' => 'select:|full|selective|ttl_extension', 'duration' => 'text', 'reason' => 'text'], 'reflect_disable' => ['mode' => 'select:|replay|hard']],
         'denoisers' => [
             'denoiser_query_pin' => ['param' => 'text', 'class' => 'select:noise|signal', 'host' => 'text', 'path_prefix' => 'text'],
