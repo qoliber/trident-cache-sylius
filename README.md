@@ -92,6 +92,13 @@ the shop with `integrations/ecommerce/sylius/trident.toml`.
 
 ## Known limits
 
+- **Every Trident restart starts with an empty cache** (an upgrade, a
+  rollback, a crash or a plain restart: Trident 1.8 exports its cache but
+  does not restore it). Restart one Trident node at a time and size the
+  origin for one cold node's share of the traffic, or refill the busiest
+  pages with the warmer before the node takes traffic. **Purges are per
+  node:** list every Trident instance in `TRIDENT_INSTANCES`, so each
+  node receives every purge.
 - **A cart holder's own cold render isn't stored:** Sylius's layout reads the
   visitor's session (flash messages). They are served the pages anonymous
   visitors fill.
